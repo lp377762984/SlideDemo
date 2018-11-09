@@ -1,5 +1,6 @@
 package com.safe.jessica.canceleventdemo;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -17,7 +18,8 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.my_text).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(MainActivity.this, "click me!!!", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(MainActivity.this, "click me!!!", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(MainActivity.this,ListActivity.class));
             }
         });
         findViewById(R.id.view).setOnClickListener(new View.OnClickListener() {

@@ -7,6 +7,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.Scroller;
 
 public class MyGroup extends ViewGroup {
@@ -60,26 +61,29 @@ public class MyGroup extends ViewGroup {
         leftHeight = leftView.getMeasuredHeight();
         delWidth = delView.getMeasuredWidth();
         delHeight = delView.getMeasuredHeight();
-        Log.d(TAG, "onMeasure: " + leftWidth + "*" + leftHeight);
+        //Log.d(TAG, "onMeasure: " + leftWidth + "*" + leftHeight);
         setMeasuredDimension(leftWidth, leftHeight);
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        Log.d(TAG, "onLayout: " + l + "*" + t + "*" + r + "*" + b);
+        //Log.d(TAG, "onLayout: " + l + "*" + t + "*" + r + "*" + b);
         leftView.layout(0, 0, leftWidth, leftHeight);
         delView.layout(leftWidth, 0, leftWidth + delWidth, 0 + delHeight);
     }
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        // TODO: 2018/11/8  侧滑打开时：如果点击左侧，拦截事件，关闭侧滑；如果点击右侧view，不拦截事件
+        Log.d(TAG, "onInterceptTouchEvent: " + ev.getAction());
         int action = ev.getAction();
         if (isOpen) {
-            float x = delView.getX();
-            float y = delView.getY();
-
-            return false;
+            float evX = ev.getX();
+            Log.d(TAG, "onInterceptTouchEvent: " + evX);
+            if (evX > getMeasuredWidth() - delWidth) {//如果点击区域是delView，则不拦截事件
+                return false;
+            } else {
+                return true;
+            }
         }
         if (isBeingDrag) {
             return true;
@@ -96,6 +100,7 @@ public class MyGroup extends ViewGroup {
                 if (diffX < 0 && Math.abs(diffX) > scaledTouchSlop) {//左滑
                     isBeingDrag = true;
                     Log.d(TAG, "onInterceptTouchEvent: " + action + "," + true);
+                    parentNotIntercept();//滑动过程中不允许父view拦截事件
                     return true;
                 }
                 break;
@@ -110,6 +115,7 @@ public class MyGroup extends ViewGroup {
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (mScroller.computeScrollOffset()) {//滑动中 不进行任何操作直接return
+            Log.d(TAG, "onInterceptTouchEvent: " + ev.getAction() + "," + true);
             return true;
         }
         int action = ev.getAction();
@@ -117,35 +123,59 @@ public class MyGroup extends ViewGroup {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 if (isBeingDrag) {//正在左滑->拿起手指 自然滑到最左侧
-                    if (Math.abs(moveX) > 0.5 * delWidth) {
+                    if (Math.abs(moveX) > 0.5 * delWidth) {//超过一半关闭
                         smoothScrollToFinal(delWidth - Math.abs(moveX));
                         isBeingDrag = false;
                         isOpen = true;
-                    } else {
+                    } else {//不超过一半 打开
                         smoothScrollToFinal(-moveX);
                         isBeingDrag = false;
+                        isOpen = false;
+                    }
+                    parentNotIntercept();
+                } else {
+                    if (isOpen) {//打开状态下，点击后关闭
+                        smoothScrollToFinal(-delWidth);
                         isOpen = false;
                     }
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
+
                 float mCurX = ev.getX();
                 int diffX = (int) (mCurX - mLastX);
-                if (diffX < 0 && Math.abs(diffX) > scaledTouchSlop) {//左滑
-                    isBeingDrag = true;
-                    if (Math.abs(diffX) >= delWidth) {
-                        diffX = -delWidth;
-                        isOpen = true;
+                if (Math.abs(diffX) > scaledTouchSlop) {
+                    if (diffX < 0) {//左滑
+                        if (isOpen){
+                            Log.d(TAG, "onInterceptTouchEvent: " + ev.getAction() + "," + false);
+                            return false;
+                        }
+                        isBeingDrag = true;
+                        if (Math.abs(diffX) >= delWidth) {
+                            diffX = -delWidth;
+                            isOpen = true;
+                        }
+                        moveX = -diffX;
+                        scrollTo(moveX, 0);
+                        parentNotIntercept();
+                    } else {//右滑
+                        isBeingDrag = true;
+                        if (Math.abs(diffX) >= delWidth) {
+                            diffX = delWidth;
+                            isOpen = false;
+                        }
+                        moveX = delWidth - diffX;
+                        //Log.d(TAG, "onTouchEvent: " + moveX);
+                        scrollTo(moveX, 0);
+                        parentNotIntercept();
                     }
-                    moveX = -diffX;
-                    scrollTo(moveX, 0);
                 }
                 break;
             case MotionEvent.ACTION_DOWN:
                 mLastX = ev.getX();
                 if (isOpen) {//左滑打开-> 放下手指  关闭左滑
-                    smoothScrollToFinal(-delWidth);
-                    isOpen = false;
+                    //smoothScrollToFinal(-delWidth);
+                    //isOpen = false;
                 }
                 break;
         }
@@ -153,10 +183,17 @@ public class MyGroup extends ViewGroup {
         return true;
     }
 
+    private void parentNotIntercept() {
+        ViewParent parent = getParent();//滑动过程中不允许父view拦截事件
+        if (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(true);
+        }
+    }
+
     private void smoothScrollToFinal(int distance) {
         mScroller.forceFinished(true);
         int scrollX = getScrollX();
-        Log.d(TAG, "smoothScrollToFinal: " + scrollX + "---" + distance);
+        //Log.d(TAG, "smoothScrollToFinal: " + scrollX + "---" + distance);
         mScroller.startScroll(scrollX, 0, distance, 0, 250);
         invalidate();
     }
@@ -166,7 +203,7 @@ public class MyGroup extends ViewGroup {
         if (mScroller.computeScrollOffset()) {
             int currX = mScroller.getCurrX();
             int currY = mScroller.getCurrY();
-            Log.d(TAG, "currX-->" + currX + ",currY-->" + currY);
+            //Log.d(TAG, "currX-->" + currX + ",currY-->" + currY);
             scrollTo(currX, currY);
             invalidate();
         }

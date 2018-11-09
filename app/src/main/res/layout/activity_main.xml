@@ -3,10 +3,10 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/text"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_gravity="center">
+    android:layout_height="wrap_content">
 
     <com.safe.jessica.canceleventdemo.MyText
+        android:padding="20dp"
         android:id="@+id/my_text"
         android:gravity="center"
         android:text="我家住在"
@@ -17,6 +17,7 @@
         android:textSize="28sp" />
 
     <View
+        android:padding="20dp"
         android:id="@+id/view"
         android:layout_width="200dp"
         android:layout_height="100dp"
