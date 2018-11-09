@@ -23,8 +23,8 @@ public class MyGroup extends ViewGroup {
     private ViewConfiguration mConfiguration;
     private int scaledTouchSlop;
     private float mLastX;
-    private boolean isBeingDrag;
-    private boolean isOpen;
+    public boolean isBeingDrag;
+    public boolean isOpen;
 
     public MyGroup(Context context) {
         super(context);
@@ -112,6 +112,8 @@ public class MyGroup extends ViewGroup {
         return false;
     }
 
+    boolean isLeftSlideAndOpen;
+
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (mScroller.computeScrollOffset()) {//滑动中 不进行任何操作直接return
@@ -135,18 +137,22 @@ public class MyGroup extends ViewGroup {
                     parentNotIntercept();
                 } else {
                     if (isOpen) {//打开状态下，点击后关闭
-                        smoothScrollToFinal(-delWidth);
-                        isOpen = false;
+                        if (isLeftSlideAndOpen) {
+                            isLeftSlideAndOpen = false;
+                        } else {
+                            smoothScrollToFinal(-delWidth);
+                            isOpen = false;
+                        }
                     }
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
-
                 float mCurX = ev.getX();
                 int diffX = (int) (mCurX - mLastX);
                 if (Math.abs(diffX) > scaledTouchSlop) {
                     if (diffX < 0) {//左滑
-                        if (isOpen){
+                        if (isOpen) {
+                            isLeftSlideAndOpen = true;
                             Log.d(TAG, "onInterceptTouchEvent: " + ev.getAction() + "," + false);
                             return false;
                         }
@@ -196,6 +202,14 @@ public class MyGroup extends ViewGroup {
         //Log.d(TAG, "smoothScrollToFinal: " + scrollX + "---" + distance);
         mScroller.startScroll(scrollX, 0, distance, 0, 250);
         invalidate();
+    }
+
+    /**
+     * 关闭侧滑
+     */
+    public void smoothScrollToFinal() {
+        smoothScrollToFinal(-delWidth);
+        isOpen = false;
     }
 
     @Override
